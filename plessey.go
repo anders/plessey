@@ -1,24 +1,20 @@
 // Package plessey provides "UK" Plessey support
 package plessey
 
+import "strings"
+
 // Bits .
 type Bits []uint8
 
-var table = [16]Bits{
-	Bits{0, 0, 0, 0}, Bits{1, 0, 0, 0}, Bits{0, 1, 0, 0}, Bits{1, 1, 0, 0},
-	Bits{0, 0, 1, 0}, Bits{1, 0, 1, 0}, Bits{0, 1, 1, 0}, Bits{1, 1, 1, 0},
-	Bits{0, 0, 0, 1}, Bits{1, 0, 0, 1}, Bits{0, 1, 0, 1}, Bits{1, 1, 0, 1},
-	Bits{0, 0, 1, 1}, Bits{1, 0, 1, 1}, Bits{0, 1, 1, 1}, Bits{1, 1, 1, 1},
+// Plessey table
+var table = Bits{
+	0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0,
+	0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0,
+	0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1,
+	0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1,
 }
 
-var fromASCII = map[rune]uint8{
-	'0': 0, '1': 1, '2': 2, '3': 3, '4': 4,
-	'5': 5, '6': 6, '7': 7, '8': 8, '9': 9,
-
-	'a': 0xa, 'b': 0xb, 'c': 0xc, 'd': 0xd, 'e': 0xe, 'f': 0xf,
-	'A': 0xa, 'B': 0xb, 'C': 0xc, 'D': 0xd, 'E': 0xe, 'F': 0xf,
-}
-
+// Plessey CRC
 var crc = Bits{1, 1, 1, 1, 0, 1, 0, 0, 1}
 
 // Checksum .
@@ -40,14 +36,19 @@ func (bits Bits) Checksum() Bits {
 // ToBits .
 func ToBits(barcode string) Bits {
 	var ret = Bits{}
+	barcode = strings.ToUpper(barcode)
 
-	for i := 0; i < len(barcode); i++ {
-		c := rune(barcode[i])
-		idx, ok := fromASCII[c]
-		if !ok {
+	for _, c := range barcode {
+		// idx: from ASCII 0-9, A-Z to 0-16
+		idx := 0
+		if c >= '0' && c <= '9' {
+			idx = int(c - '0')
+		} else if c >= 'A' && c <= 'Z' {
+			idx = int(c - 'A')
+		} else {
 			continue
 		}
-		ret = append(ret, table[idx]...)
+		ret = append(ret, table[idx*4:idx*4+4]...)
 	}
 
 	return ret
@@ -59,8 +60,8 @@ func (bits Bits) String() string {
 	ret := ""
 	for i := 0; i < len(bits)/4; i++ {
 		slice := bits[i*4 : i*4+4]
-		for j := 0; j < len(table); j++ {
-			if string(table[j]) == string(slice) {
+		for j := 0; j < len(table)/4; j++ {
+			if string(table[j*4:j*4+4]) == string(slice) {
 				ret += string(hex[j])
 				continue
 			}

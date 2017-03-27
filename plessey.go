@@ -41,6 +41,11 @@ func ToBits(barcode string) Bits {
 	for _, c := range barcode {
 		// idx: from ASCII 0-9, A-Z to 0-16
 		idx := 0
+
+		if c == 'X' {
+			c = 'A'
+		}
+
 		if c >= '0' && c <= '9' {
 			idx = int(c - '0')
 		} else if c >= 'A' && c <= 'Z' {

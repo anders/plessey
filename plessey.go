@@ -1,7 +1,10 @@
 // Package plessey provides "UK" Plessey support
 package plessey
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+)
 
 // Bits .
 type Bits []uint8
@@ -19,50 +22,37 @@ var crc = Bits{1, 1, 1, 1, 0, 1, 0, 0, 1}
 
 // Checksum .
 func (bits Bits) Checksum() Bits {
-	var temp = make(Bits, len(bits)+8)
-	copy(temp, bits)
+	var checkptr = make(Bits, len(bits))
+	copy(checkptr, bits)
 
-	for i := 0; i < len(bits); i++ {
-		if temp[i] == 1 {
+	for i := 0; i < len(checkptr)-8; i++ {
+		if checkptr[i] == 1 {
 			for j := 0; j < len(crc); j++ {
-				temp[i+j] ^= crc[j]
+				checkptr[i+j] ^= crc[j]
 			}
 		}
 	}
-
-	return temp[len(temp)-8:]
+	return checkptr[len(checkptr)-8:]
 }
 
 // ToBits .
-func ToBits(barcode string) Bits {
+func ToBits(barcode string) (Bits, error) {
 	var ret = Bits{}
 	barcode = strings.ToUpper(barcode)
 
 	for _, c := range barcode {
-		// idx: from ASCII 0-9, A-Z to 0-16
-		idx := 0
-
 		if c == 'X' {
 			c = 'A'
 		}
-
-		if c >= '0' && c <= '9' {
-			idx = int(c - '0')
-		} else if c >= 'A' && c <= 'Z' {
-			idx = int(c - 'A')
-		} else {
-			continue
-		}
-
-		// skip anything above "F""
-		if !(c >= '0' && c <= '9') && c > 'F' {
-			continue
+		idx, err := strconv.ParseInt(string(c), 16, 8)
+		if err != nil {
+			return ret, err
 		}
 
 		ret = append(ret, table[idx*4:idx*4+4]...)
 	}
 
-	return ret
+	return ret, nil
 }
 
 // Bits to string

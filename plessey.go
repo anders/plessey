@@ -53,6 +53,12 @@ func ToBits(barcode string) Bits {
 		} else {
 			continue
 		}
+
+		// skip anything above "F""
+		if !(c >= '0' && c <= '9') && c > 'F' {
+			continue
+		}
+
 		ret = append(ret, table[idx*4:idx*4+4]...)
 	}
 
